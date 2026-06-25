@@ -1,0 +1,109 @@
+#cloud-config
+# GLAMacles project VM. Placeholders @@LIKE_THIS@@ are filled in by
+# scripts/20-launch-vms.sh per VM (instructor name + Manila share details).
+#
+# What this builds on top of the Featured-Ubuntu24 GPU image:
+#   - mounts the common (RO) and per-project scratch (RW) CephFS shares
+#   - installs git + uv
+#   - a shared GPU virtualenv at /opt/glamacles/venv (PyTorch + JAX, CUDA 12),
+#     registered as a Jupyter kernel visible to every user
+#   - The Littlest JupyterHub (TLJH), admin = the instructor
+
+# Extra SSH public keys (the instructor's, plus anything in keys/shared/) added
+# to the default `ubuntu` account. The OpenStack --key-name key is also present.
+@@SSH_KEYS_BLOCK@@
+
+package_update: true
+packages:
+  - git
+  - python3-venv
+  - ceph-common
+
+write_files:
+  # ---- Ceph keyrings for the two shares ------------------------------------
+  - path: /etc/ceph/ceph.client.@@COMMON_ACCESS_NAME@@.keyring
+    permissions: "0600"
+    content: |
+      [client.@@COMMON_ACCESS_NAME@@]
+              key = @@COMMON_KEY@@
+  - path: /etc/ceph/ceph.client.@@SCRATCH_ACCESS_NAME@@.keyring
+    permissions: "0600"
+    content: |
+      [client.@@SCRATCH_ACCESS_NAME@@]
+              key = @@SCRATCH_KEY@@
+
+  # ---- Welcome / orientation file ------------------------------------------
+  - path: /etc/glamacles-welcome
+    permissions: "0644"
+    content: |
+      ====================  GLAMacles project VM  ====================
+      Shared GPU virtualenv : /opt/glamacles/venv  (Jupyter kernel:
+                              "GLAMacles (PyTorch+JAX GPU)")
+      Common dataset (RO)   : @@COMMON_MOUNT@@
+      Project scratch (RW)  : @@SCRATCH_MOUNT@@
+      JupyterHub            : http://<this-vm-floating-ip>/
+
+      Add packages to the shared env (instructors, needs sudo):
+        sudo uv pip install --python /opt/glamacles/venv <package>
+      Or make your own env:  uv venv ~/myenv && source ~/myenv/bin/activate
+      ================================================================
+
+  # ---- Build script (run once from runcmd) ---------------------------------
+  - path: /opt/glamacles/setup.sh
+    permissions: "0755"
+    content: |
+      #!/usr/bin/env bash
+      set -euxo pipefail
+      VENV=/opt/glamacles/venv
+
+      # Mount the shares (kernel ceph client reads the keyrings above).
+      mkdir -p @@COMMON_MOUNT@@ @@SCRATCH_MOUNT@@
+      grep -q '@@COMMON_MOUNT@@' /etc/fstab || cat >>/etc/fstab <<FSTAB
+      @@COMMON_PATH@@ @@COMMON_MOUNT@@ ceph name=@@COMMON_ACCESS_NAME@@,x-systemd.device-timeout=30,x-systemd.mount-timeout=30,noatime,_netdev,ro 0 2
+      @@SCRATCH_PATH@@ @@SCRATCH_MOUNT@@ ceph name=@@SCRATCH_ACCESS_NAME@@,x-systemd.device-timeout=30,x-systemd.mount-timeout=30,noatime,_netdev,rw 0 2
+      FSTAB
+      mount -a
+
+      # Surface the shares in JupyterLab: /etc/skel is copied into each new
+      # user's home at account creation, so every student sees common/ + scratch/.
+      ln -sfn @@COMMON_MOUNT@@ /etc/skel/common
+      ln -sfn @@SCRATCH_MOUNT@@ /etc/skel/scratch
+      # Let project members read+write scratch (sticky bit, like /tmp); common
+      # stays read-only via its mount options.
+      chmod 1777 @@SCRATCH_MOUNT@@ || true
+
+      # uv, installed system-wide so it's on every user's PATH.
+      export UV_INSTALL_DIR=/usr/local/bin INSTALLER_NO_MODIFY_PATH=1
+      curl -LsSf https://astral.sh/uv/install.sh | sh
+
+      # Shared GPU virtualenv. PyTorch wheels bundle their own CUDA; JAX pulls
+      # CUDA 12 via pip. The vGPU driver is already on the image.
+      # Use the system interpreter (world-readable) rather than a uv-managed one
+      # under /root, so notebooks spawned as students can execute it.
+      /usr/local/bin/uv venv --python /usr/bin/python3 "$VENV"
+      /usr/local/bin/uv pip install --python "$VENV" \
+        torch torchvision --torch-backend=cu124
+      /usr/local/bin/uv pip install --python "$VENV" \
+        "jax[cuda12]" ipykernel numpy scipy pandas matplotlib scikit-learn xarray netCDF4 zarr tqdm
+      chmod -R a+rX /opt/glamacles
+
+      # Register the env as a system-wide Jupyter kernel for all TLJH users.
+      # XLA_PYTHON_CLIENT_PREALLOCATE=false keeps JAX from grabbing the whole
+      # 20 GB of shared VRAM on import.
+      "$VENV/bin/python" -m ipykernel install \
+        --name glamacles --display-name "GLAMacles (PyTorch+JAX GPU)" \
+        --prefix /usr/local \
+        --env XLA_PYTHON_CLIENT_PREALLOCATE false \
+        --env XLA_PYTHON_CLIENT_MEM_FRACTION .4
+
+      # The Littlest JupyterHub; instructor is the admin.
+      curl -fsSL https://tljh.jupyter.org/bootstrap.py \
+        | python3 - --admin @@INSTRUCTOR@@
+
+      echo "GLAMacles setup complete" > /opt/glamacles/SETUP_DONE
+
+runcmd:
+  - [ bash, -c, "echo 'cat /etc/glamacles-welcome' >> /etc/profile.d/glamacles.sh" ]
+  - [ bash, /opt/glamacles/setup.sh ]
+
+final_message: "GLAMacles VM ready after $UPTIME s — JupyterHub on port 80"

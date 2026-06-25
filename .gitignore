@@ -1,0 +1,21 @@
+# Secrets — never commit
+secret.auto.tfvars
+*.auto.tfvars          # any auto-loaded tfvars (defensive; *.example is still tracked)
+clouds.yaml
+openrc*.sh             # downloaded JS2 openrc files contain credentials
+*-openrc.sh
+.env
+env.sh
+
+# Machine-local / personal (not secrets, but not for the repo)
+.claude/settings.local.json
+
+# Terraform state (contains the Manila cephx access keys) + working dir
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+
+# Keep tracked: *.tf, terraform.tfvars (non-secret config), .terraform.lock.hcl,
+# *.example files, keys/*.pub (public keys are not secret).

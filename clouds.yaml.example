@@ -1,0 +1,21 @@
+# Copy to ~/.config/openstack/clouds.yaml (or ./clouds.yaml) and fill in the
+# application-credential id/secret you create in Horizon:
+#   https://js2.jetstream-cloud.org -> select your allocation
+#   -> Identity -> Application Credentials -> Create Application Credential
+#   -> set an expiry past the end of the summer school.
+#
+# The cloud name below ("glamacles") must match OS_CLOUD in config.sh.
+#
+# Alternative: skip this file entirely and `source openrc-<alloc>.sh`
+# (the "Download openrc file" button on the same Horizon page). lib.sh detects
+# a sourced openrc automatically.
+clouds:
+  glamacles:
+    auth_type: v3applicationcredential
+    auth:
+      auth_url: https://js2.jetstream-cloud.org:5000/v3
+      application_credential_id: "REPLACE_WITH_APP_CRED_ID"
+      application_credential_secret: "REPLACE_WITH_APP_CRED_SECRET"
+    region_name: "IU"
+    interface: public
+    identity_api_version: 3
