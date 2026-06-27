@@ -1,0 +1,19 @@
+# Extra packages for jdowns' VMs, installed into the shared GPU venv
+# (/opt/glamacles/venv) on top of the baseline (torch cu124, jax cuda12,
+# numpy/scipy/pandas/matplotlib/sklearn/xarray/netCDF4/zarr/tqdm).
+#
+# Reference this from terraform.tfvars:
+#   instructors = { jdowns = { vms = N, requirements = "reqs/jdowns.txt" } }
+
+# GLIDE ice-flow engine (from source). Pure-Python setuptools package: the CUDA
+# kernels ship as package-data and are JIT-compiled at runtime by CuPy's bundled
+# NVRTC, so no nvcc/toolkit is needed at install. Pulls cupy-cuda12x (matches the
+# cu124 baseline) + pyproj transitively.
+# Tracks main: each `terraform apply` rebuilds the VMs and installs main as of
+# that moment, so apply once the course env is set rather than mid-course.
+glide @ git+https://github.com/glide-ism/glide.git@main
+
+# Regridding stack for the 1 km -> 2 km model-grid resample done at data load
+# (common/grids.py vendors the ~85 lines used from gridkit). rioxarray pulls in
+# rasterio + affine + pyproj.
+rioxarray
