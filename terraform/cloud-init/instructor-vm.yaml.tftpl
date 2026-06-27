@@ -89,7 +89,7 @@ write_files:
       # bump this without testing on a g3 vGPU. (A full-GPU g3.xl could run newer
       # JAX, but those are rarely available on JS2.)
       /usr/local/bin/uv pip install --python "$VENV" \
-        "jax[cuda12]==0.4.38" ipykernel numpy scipy pandas matplotlib scikit-learn xarray netCDF4 zarr tqdm
+        "jax[cuda12]==0.4.38" ipykernel numpy scipy pandas matplotlib scikit-learn xarray rioxarray netCDF4 zarr tqdm
 
       # Optional per-instructor requirements, baked in so an instructor's
       # multiple VMs come up identically configured.

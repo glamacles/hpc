@@ -9,7 +9,7 @@ os_cloud = "openstack"
 #
 # Test deployment (one VM, no extras):
 instructors = {
-  jdowns = { vms = 1 }
+  jdowns = { vms = 1, requiremets="reqs/jdowns.txt" }
   dbrinkerhoff = {vms = 1}
   cgong = { vms = 1}
   mperego = { vms = 1 }
