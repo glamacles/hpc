@@ -82,9 +82,9 @@ Your allocation may fit more than six VMs, so an instructor can have two
   work goes in scratch).
 
 **Recommendation:** start most instructors at 1 and watch week-1 contention
-(`nvidia-smi`, OOM reports), then set `vms = 2` for the heaviest. Decide up front
-where you can — raising `vms` later replaces that instructor's VM (see
-terraform/README "Scaling").
+(`nvidia-smi`, OOM reports), then set `vms = 2` for the heaviest. Raising `vms`
+later just **adds** the second VM (`<name>-2`) without disturbing the existing one,
+so you can scale up mid-course safely (see terraform/README "Scaling").
 
 ## Controlling SU burn
 

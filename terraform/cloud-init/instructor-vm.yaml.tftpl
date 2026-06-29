@@ -92,9 +92,12 @@ write_files:
         "jax[cuda12]==0.4.38" ipykernel numpy scipy pandas matplotlib scikit-learn xarray rioxarray netCDF4 zarr tqdm
 
       # Optional per-instructor requirements, baked in so an instructor's
-      # multiple VMs come up identically configured.
+      # multiple VMs come up identically configured. NON-FATAL on purpose: a bad
+      # package must not abort the build (which would leave the VM with no
+      # JupyterHub). Failures are logged; the hub still comes up.
       if [ -s /opt/glamacles/requirements.txt ]; then
-        /usr/local/bin/uv pip install --python "$VENV" -r /opt/glamacles/requirements.txt
+        /usr/local/bin/uv pip install --python "$VENV" -r /opt/glamacles/requirements.txt \
+          || echo "WARNING: per-instructor requirements failed to install; JupyterHub still starts. See /var/log/cloud-init-output.log" >&2
       fi
       chmod -R a+rX /opt/glamacles
 

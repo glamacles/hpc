@@ -111,11 +111,12 @@ and their `keys/<name>.pub` injected for SSH. Edit `terraform.tfvars` and re-run
 `terraform apply`; Terraform only changes the delta:
 
 - **Add an instructor** → creates their VM(s) + scratch share.
-- **`vms = 2`** → two VMs for that instructor, sharing one scratch share and the
-  same requirements. Note: raising `vms` from 1→2 **renames** the node key
-  (`rachel` → `rachel-1`), so Terraform replaces the single VM with two — fine
-  before the school starts, disruptive once students have data on it. Set the
-  count up front where you can.
+- **`vms = 2`** → adds a second VM for that instructor (sharing the one scratch
+  share and the same requirements). The first VM keeps its name, so raising `vms`
+  from 1→2 only **creates** the new node (`rachel-2`) — the existing VM is left
+  untouched. Safe to do mid-course; `terraform apply` shows only the new
+  instance/port/floating-IP/DNS being added. (The first VM is `glamacles-rachel`,
+  extras are `-2`, `-3`, …)
 - **`requirements = "reqs/<name>.txt"`** → extra pip packages installed into the
   shared venv on all of that instructor's VMs. See `reqs/README.md`. Changing the
   file later re-applies (rebuilds those VMs, since user-data changes force

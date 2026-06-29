@@ -2,13 +2,17 @@
 
 locals {
   # Expand each instructor x their vms count into a flat map of node objects.
-  # vms = 1 -> key "rachel",   vm "glamacles-rachel"
-  # vms = N -> keys "rachel-1".."rachel-N", vms "glamacles-rachel-1"..
+  # The FIRST VM always keeps the bare name; additional VMs are -2, -3, ...
+  #   vms = 1 -> key "rachel"                 (VM glamacles-rachel)
+  #   vms = 2 -> keys "rachel", "rachel-2"    (VMs glamacles-rachel, -rachel-2)
+  # Because the first key never changes, raising `vms` only ADDS nodes — it never
+  # renames/destroys the existing VM, so you can scale an instructor up mid-course
+  # without disturbing their running server.
   node_list = flatten([
     for name, cfg in var.instructors : [
       for i in range(cfg.vms) : {
-        key        = cfg.vms > 1 ? "${name}-${i + 1}" : name
-        vm_name    = cfg.vms > 1 ? "glamacles-${name}-${i + 1}" : "glamacles-${name}"
+        key        = i == 0 ? name : "${name}-${i + 1}"
+        vm_name    = i == 0 ? "glamacles-${name}" : "glamacles-${name}-${i + 1}"
         instructor = name
         # contents of the instructor's requirements file, or "" if none
         requirements = cfg.requirements != null ? file("${path.module}/${cfg.requirements}") : ""

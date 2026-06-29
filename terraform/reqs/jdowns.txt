@@ -7,13 +7,12 @@
 
 # GLIDE ice-flow engine (from source). Pure-Python setuptools package: the CUDA
 # kernels ship as package-data and are JIT-compiled at runtime by CuPy's bundled
-# NVRTC, so no nvcc/toolkit is needed at install. Pulls cupy-cuda12x (matches the
-# cu124 baseline) + pyproj transitively.
+# NVRTC, so no nvcc/toolkit is needed at install. The [cuda12] extra pulls
+# cupy-cuda12x (matches the cu124 baseline) — WITHOUT it you get no GPU backend.
+# Also pulls pyproj/geopandas transitively.
 # Tracks main: each `terraform apply` rebuilds the VMs and installs main as of
 # that moment, so apply once the course env is set rather than mid-course.
-glide @ git+https://github.com/glide-ism/glide.git@main
-
-# Regridding stack for the 1 km -> 2 km model-grid resample done at data load
-# (common/grids.py vendors the ~85 lines used from gridkit). rioxarray pulls in
-# rasterio + affine + pyproj.
-rioxarray
+glide[cuda12] @ git+https://github.com/glide-ism/glide.git@main
+cupy-cuda12x
+# Note: rioxarray (+ rasterio/affine/pyproj) is now in the base env for all VMs,
+# so it's not listed here.
